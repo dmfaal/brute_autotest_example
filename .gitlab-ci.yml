@@ -1,0 +1,47 @@
+# Пример оформления .gitlab-ci.yml файла
+
+
+variables:
+  DOCKERFILE_PATH: ./mirror-image-build/Dockerfile
+  ALLURE_REPORTS: ./allure_reports
+  ALLURE_PROJECT_ID: "123"
+  ALLURE_ENDPOINT: https://allure.my-project.ru
+  ALLURE_TOKEN: 123456789
+  ALLURE_LAUNCH_NAME: "${CI_PROJECT_NAME} - ${CI_COMMIT_BRANCH} -
+${CI_COMMIT_SHORT_SHA}"
+  mirror_base_url: mirror.s.my-project.ru
+  suite: bionic
+image: gitlab-registry.my-project.ru/docker/python:3.8.12
+stages:
+  - test
+test:
+  stage: test
+  tags: [ tests ]
+  only:
+    - dev
+  before_script:
+    - apt-get update
+    - apt-get upgrade -y
+    - apt-get install -y git
+    - apt-get install wget
+    - apt-get install -y zip unzip
+    - apt-get install -y curl
+    - git config --global credential.helper store && echo
+  script:
+    "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.my-project.ru"
+    "https://gitlab.my-project.ru/my-project.git"
+    - pip install --trusted-host nexus.s.my-project.ru -r requirements.txt
+    - python -m pytest --pyargs my-project-api.tests
+    --alluredir=./allure-report
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - ../allure-report
+    expire_in: '60'
+  after_script:
+    - cd goals-api/
+    - ls
+    - zip -q ../allure-report.zip *
+    - OUTPUT=$(curl -s -F file=@../allure-report
+    - wget -q https://my-project.ru/repository/files/allurectl/releases/download/1.2.1/allurectl_linux_386
